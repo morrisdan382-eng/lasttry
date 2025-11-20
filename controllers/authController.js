@@ -38,33 +38,28 @@ export const signup = async (req, res) => {
   }
 };
 
-// ==================== LOGIN ====================
+// ==================== LOGIN (UPDATED: role bypass) ====================
 export const login = async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body; // role removed
 
-    if (!email || !password || !role) {
-      return res.status(400).json({ message: "Email, password, and role are required" });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
     }
 
-    // Step 1: Find user by email (case-insensitive)
+    // Find user by email only
     const user = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, "i") } });
     if (!user) return res.status(400).json({ message: "User not found" });
 
-    // Step 2: Validate role matches database
-    if (role.toLowerCase() !== user.role) {
-      return res.status(400).json({ message: "User not found" });
-    }
-
-    // Step 3: Compare password
+    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Incorrect password" });
 
-    // Step 4: Generate JWT token
+    // Generate JWT token
     const secret = process.env.JWT_SECRET || "devsecret";
     const token = jwt.sign({ id: user._id, role: user.role }, secret, { expiresIn: "7d" });
 
-    // Step 5: Send response
+    // Send response
     res.json({
       message: "Login successful",
       token,
@@ -72,7 +67,7 @@ export const login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role, // taken from DB
       },
     });
 
